@@ -24,8 +24,13 @@ Open iOS App
     Fail    Appium 세션 생성 실패 (최대 재시도 횟수 초과). WDA가 실행 중인지 확인하세요.
 
 Close iOS App
-    [Documentation]    현재 실행 중인 iOS 앱을 종료합니다
-    Close Application
+    [Documentation]    현재 실행 중인 iOS 앱을 종료합니다 (연결 오류 시에도 안전하게 처리)
+    Log    Appium 세션 종료 시도 중...
+    ${close_success}=    Run Keyword And Return Status    Close Application
+    Run Keyword If    not ${close_success}
+    ...    Log    ⚠️ 세션 종료 중 오류 발생 (연결이 끊어진 것으로 보입니다. 무시하고 계속 진행)
+    ...    ELSE
+    ...    Log    ✅ Appium 세션 정리 완료
 
 Take Screenshot On Failure
     [Documentation]    테스트 실패 시 스크린샷을 저장합니다 (연결이 끊어진 경우 실패해도 계속 진행)
@@ -185,7 +190,7 @@ Close Popup Button With Retry
     Run Keyword If    not ${actually_closed}    Log    ⚠️ 주의: 팝업이 여전히 화면에 보일 수 있습니다!
     Log    ========================================
     
-    [Return]    ${actually_closed}
+    Return From Keyword    ${actually_closed}
 
 Close Popup Button
     [Documentation]    팝업 닫기 버튼을 여러 방법으로 클릭 시도합니다. 실패 시 대체 방법도 시도합니다. (locator는 name, xpath 등 사용, ID는 가변적이므로 사용하지 않음)
@@ -236,7 +241,7 @@ Close Popup Button
     ...    ELSE
     ...    Log    ✅ 팝업이 닫혔습니다
     
-    [Return]    not ${still_visible}
+    Return From Keyword    not ${still_visible}
 
 Check If Popup Closed
     [Documentation]    팝업이 닫혔는지 확인합니다 (locator는 id, name, xpath 등 가능)
@@ -245,7 +250,7 @@ Check If Popup Closed
     ${closed}=    Evaluate    not ${still_visible}
     Run Keyword If    ${closed}    Log    ✅ 팝업 닫기 버튼이 사라졌습니다 (팝업이 닫힌 것으로 보입니다)
     Run Keyword If    not ${closed}    Log    ⚠️ 팝업 닫기 버튼이 여전히 보입니다 (팝업이 닫히지 않았습니다)
-    [Return]    ${closed}
+    Return From Keyword    ${closed}
 
 Force Close Popup
     [Documentation]    팝업을 강제로 닫기 시도합니다 (뒤로가기, 스와이프 등)
@@ -302,7 +307,7 @@ Get Element Information
     ...    활성화: ${enabled}
     ...    보임: ${visible}
     
-    [Return]    ${info}
+    Return From Keyword    ${info}
 
 Get Element Details
     [Documentation]    요소의 상세 정보를 출력합니다 (디버깅용)
@@ -328,21 +333,24 @@ Get Element Details
 Wait For Element And Click With Retry
     [Documentation]    요소가 나타날 때까지 대기한 후 클릭합니다. 연결 오류 시 재시도합니다.
     [Arguments]    ${locator}    ${timeout}=20    ${max_retries}=3
+    ${max_index}=    Evaluate    ${max_retries} - 1
     FOR    ${i}    IN RANGE    ${max_retries}
         ${visible_success}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${locator}    timeout=${timeout}
+        ${is_not_last}=    Evaluate    ${i} < ${max_index}
+        Run Keyword If    not ${visible_success} and ${is_not_last}
+        ...    Log    ⚠️ 요소를 찾을 수 없습니다, 재시도... (${i + 1}/${max_retries})
         Continue For Loop If    not ${visible_success}
         
         ${click_success}=    Run Keyword And Return Status    Click Element    ${locator}
-        Return From Keyword If    ${click_success}
+        Run Keyword If    ${click_success}    Return From Keyword
+        Run Keyword If    ${click_success}    Log    ✅ 요소 클릭 성공
         
-        Run Keyword If    ${i} < ${max_retries - 1}
+        Run Keyword If    ${is_not_last}
         ...    Log    ⚠️ 클릭 실패 또는 연결 오류, 2초 후 재시도... (${i + 1}/${max_retries})
-        Run Keyword If    ${i} < ${max_retries - 1}
+        Run Keyword If    ${is_not_last}
         ...    Sleep    2s
     END
     
-    # 최종 시도: 요소가 보이지 않아도 시도
-    ${final_click}=    Run Keyword And Return Status    Click Element    ${locator}
-    Run Keyword If    not ${final_click}
-    ...    Fail    요소를 클릭할 수 없습니다 (연결 오류 가능성): ${locator}
+    # 모든 재시도 실패 시 에러
+    Fail    요소를 클릭할 수 없습니다 (연결 오류 또는 요소를 찾을 수 없음): ${locator}
 

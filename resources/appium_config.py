@@ -30,15 +30,18 @@ def get_ios_capabilities():
         "bundleId": IOS_BUNDLE_ID,
         "noReset": NO_RESET,
         "fullReset": FULL_RESET,
-        # WDA 재사용 옵션: Xcode에서 미리 설치한 WebDriverAgentRunner 사용 (매번 재설치 방지)
-        "usePrebuiltWDA": True,  # 기존에 설치된 WDA 사용 (재설치 안 함)
-        "useNewWDA": False,  # 새 WDA 세션 생성하지 않음
+        # WDA 자동 시작 옵션: Appium이 자동으로 WDA를 빌드하고 시작
+        "usePrebuiltWDA": False,  # Appium이 자동으로 WDA 빌드 및 시작
+        "useNewWDA": True,  # 매번 새로운 WDA 세션 생성 (안정성 향상)
         "updatedWDABundleId": WDA_BUNDLE_ID,  # WDA Bundle ID 지정
         "showXcodeLog": True,  # 디버깅을 위해 Xcode 로그 표시
         # WDA 연결 안정성 향상
-        "wdaStartupRetries": 3,  # WDA 시작 재시도 횟수
-        "wdaStartupRetryInterval": 2000,  # 재시도 간격 (ms)
+        "wdaStartupRetries": 5,  # WDA 시작 재시도 횟수 증가
+        "wdaStartupRetryInterval": 3000,  # 재시도 간격 증가 (ms)
         "newCommandTimeout": 3600,  # 명령 타임아웃 (초)
+        # Xcode 서명 정보 (필요시 주석 해제)
+        # "xcodeOrgId": "YOUR_TEAM_ID",  # Xcode Team ID (8자리 문자열)
+        # "xcodeSigningId": "iPhone Developer",  # Signing ID
     }
     
     # UDID가 지정된 경우 추가
